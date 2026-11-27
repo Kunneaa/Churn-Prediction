@@ -1,0 +1,8 @@
+câu hỏi,A,B,auc_A,auc_B,chênh A-B,t,p,có ý nghĩa (p<0.05)
+Cờ giá trị thiếu có giúp?,cấu hình chọn (LR),không cờ thiếu,0.6437,0.64,0.0037,6.1624,0.0003,True
+Log-transform có giúp?,cấu hình chọn (LR),không log,0.6437,0.6358,0.0079,4.8509,0.0013,True
+Encoding có quan trọng?,cấu hình chọn (LR),ordinal + target,0.6437,0.6432,0.0005,0.2563,0.8042,False
+PCA 95% có hại?,cấu hình chọn (LR),PCA 95%,0.6437,0.6344,0.0093,3.9113,0.0045,True
+Lựa chọn đặc trưng có tác động?,cấu hình chọn (LR),"ANOVA F, k=40",0.6437,0.6197,0.024,4.1645,0.0031,True
+GB hơn RF?,Gradient Boosting,Random Forest,0.6884,0.6747,0.0137,4.3031,0.0026,True
+GB hơn LR?,Gradient Boosting,cấu hình chọn (LR),0.6884,0.6437,0.0446,10.361,0.0,True

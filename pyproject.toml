@@ -1,0 +1,142 @@
+[project]
+name = "machine-learning"
+version = "0.1.0"
+description = "BTL Học máy HK261 — Bài 1 (dữ liệu bảng): pipeline học máy truyền thống cấu hình được dự đoán churn viễn thông."
+readme = "README.md"
+requires-python = ">=3.11"
+# Ghim mức tối thiểu khớp Google Colab (front-end bắt buộc của đề); phiên bản cụ thể khoá trong uv.lock.
+dependencies = [
+    "numpy>=1.26",
+    "pandas>=2.0",
+    "scikit-learn>=1.4",
+    "matplotlib>=3.7",
+    "seaborn>=0.12",
+    "pydantic-settings>=2",
+    "pyyaml>=6",
+    "scipy>=1.10",
+    "torch>=2.2",
+    "lightgbm>=4",
+]
+# Dependency runtime thêm bằng `uv add <pkg>`; tool test/dev bằng `uv add --dev <pkg>`.
+
+[dependency-groups]
+dev = [
+    "ruff>=0.6",
+    "pytest>=8",
+    "import-linter>=2.1",
+    "pre-commit>=3",
+    "ipykernel>=6",
+    "nbconvert>=7",
+    "pytest-cov>=7.1.0",
+]
+
+[project.scripts]
+churn = "modules.app.main:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+# ADR-0001: package gốc là `modules/` ở gốc repo (đề bài bắt buộc thư mục notebooks/ modules/ reports/ features/)
+[tool.hatch.build.targets.wheel]
+packages = ["modules"]
+
+# ───────────────────────────── Ruff ─────────────────────────────
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = [".", "tests"]
+extend-exclude = ["data", "notebooks/.ipynb_checkpoints"]
+
+[tool.ruff.lint]
+select = [
+    "E", "W", "F",   # pycodestyle + pyflakes
+    "I",             # isort
+    "N",             # naming
+    "UP",            # pyupgrade
+    "B",             # bugbear
+    "SIM",           # simplify
+    "C90",           # complexity
+    "PL",            # pylint subset
+    "RUF",
+    "T20",           # no print() in src
+    "ARG",           # unused arguments
+    "PTH",           # pathlib over os.path
+    "ERA",           # no commented-out code
+    "TID",           # banned relative imports beyond parent
+]
+ignore = [
+    "PLR2004",                       # magic numbers
+    "RUF001", "RUF002", "RUF003",    # cho phép chữ tiếng Việt
+    "E501",                          # độ dài dòng do ruff format lo
+    "PLC0415",                       # import trong hàm (import lười thư viện nặng); import-linter vẫn kiểm tra cạnh
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["modules"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.pylint]
+max-args = 6
+max-branches = 12
+max-statements = 50
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "parents"   # cho phép `from .x import`, cấm `from ..x import`
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["PLR2004", "ARG", "T20"]
+"scripts/**" = ["T20"]
+"notebooks/**" = ["T20", "E402", "ERA"]
+
+# ───────────────────────────── Pytest ─────────────────────────────
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q --import-mode=importlib"
+markers = ["slow: chạy toàn bộ pipeline trên dữ liệu tổng hợp (vài giây)"]
+filterwarnings = ["ignore:Found unknown categories:UserWarning"]
+
+# ───────────────────────────── Coverage ─────────────────────────────
+# Gate: `pytest --cov --cov-fail-under=<coverage_floor>` (.devvault.toml); chỉ đo code nguồn.
+[tool.coverage.run]
+source = ["modules"]
+
+# pytest-cov mặc định precision 0 làm tròn trước khi so sàn → 91,6% lọt sàn 92.
+[tool.coverage.report]
+precision = 2
+
+# ───────────────────────── Import Linter ─────────────────────────
+# Chạy: `lint-imports`. Đây là "luật kiến trúc" được máy kiểm tra.
+# ADR-0001: app/ và shared/ nằm cạnh các module nghiệp vụ trong `modules/`, nên MỘT contract (exhaustive)
+# vừa ép chiều tầng app -> module nghiệp vụ -> shared, vừa ép DAG giữa các module.
+[tool.importlinter]
+root_package = "modules"
+
+[[tool.importlinter.contracts]]
+name = "Tầng + DAG module: app -> experiments -> ... -> datasets -> shared"
+type = "layers"
+containers = ["modules"]
+exhaustive = true
+# Trên cao được import dưới thấp. "a | b" = cùng tầng, độc lập với nhau.
+# Thêm module mới -> PHẢI khai báo ở đây (exhaustive) và ghi ADR nếu tạo phụ thuộc mới.
+layers = [
+    "app",
+    "experiments",
+    "evaluation | reporting",
+    "modeling",
+    "featurize | preprocessing",
+    "datasets",
+    "shared",
+]
+broken_contract_guidance = """
+Module chỉ được phụ thuộc module nằm ở tầng THẤP hơn trong danh sách trên; shared/ không import ai.
+Muốn thêm phụ thuộc mới: sửa danh sách + viết ADR trong Obsidian (Decisions/).
+"""
+
+# ───────────────────────── check_structure ─────────────────────────
+# Baseline nợ cũ (mỗi mục có dòng Tồn đọng `simplify` trong MOC).
+[tool.check_structure]
+ignore = []

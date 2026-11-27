@@ -1,0 +1,71 @@
+# Copy vào .github/workflows/ci.yml (project Python, uv). Chạy đúng `gate` trong .devvault.toml —
+# một nguồn sự thật với pre-commit và skill. Repo chưa có .devvault.toml → chạy 4 kiểm tra mặc định.
+# Thêm: golden khi `[golden] ci = true`, + audit thư viện (chỉ CI). Không chứa secret. Test không được cần mạng
+# hay .env thật. Project lai (game + Python): Toolkit README.
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - run: uv sync --locked
+      - name: gate (.devvault.toml)
+        run: |
+          uv run python - <<'PY'
+          import pathlib, subprocess, sys, tomllib
+          cfg = pathlib.Path(".devvault.toml")
+          gate = tomllib.loads(cfg.read_text())["gate"] if cfg.exists() else [
+              "uv run ruff check .", "uv run ruff format --check .", "uv run lint-imports",
+              "uv run python scripts/check_structure.py", "uv run pytest -q"]
+          for cmd in gate:
+              print(f"::group::{cmd}", flush=True)
+              rc = subprocess.run(cmd, shell=True).returncode
+              print("::endgroup::", flush=True)
+              if rc:
+                  print(f"::error::gate trượt: {cmd}")
+                  sys.exit(rc)
+          PY
+      - name: golden (.devvault.toml [golden] ci = true)
+        run: |
+          uv run python - <<'PY'
+          import pathlib, subprocess, sys, tomllib
+          cfg = pathlib.Path(".devvault.toml")
+          g = tomllib.loads(cfg.read_text()).get("golden") if cfg.exists() else None
+          if not (isinstance(g, dict) and g.get("ci") is True):
+              print("golden: bỏ qua (chưa đặt [golden] ci = true — cần dữ liệu riêng hoặc mạng)"); sys.exit(0)
+          for cmd in g.get("run") or []:
+              print(f"::group::{cmd}", flush=True)
+              rc = subprocess.run(cmd, shell=True).returncode
+              print("::endgroup::", flush=True)
+              if rc:
+                  print(f"::error::golden lệch: {cmd}"); sys.exit(rc)
+          PY
+      # Audit thư viện CHỈ trong CI (cần mạng): lỗ hổng đã biết trong phụ thuộc RUNTIME khoá ở uv.lock (không dev, không nhóm mặc định),
+      # chạy bằng đúng bản Python của dự án (.python-version, không có thì cận dưới requires-python) để marker trong uv export khớp.
+      # pip-audit ghim phiên bản; --no-deps vì uv export đã ghim đủ phụ thuộc bắc cầu (--disable-pip cần hash hoặc --no-deps).
+      - name: audit (pip-audit)
+        run: |
+          PYV=$(uv run --no-sync python - <<'PY'
+          import pathlib, re, tomllib
+          pv = pathlib.Path(".python-version")
+          lines = [l.strip() for l in pv.read_text().splitlines()] if pv.exists() else []
+          lines = [l for l in lines if l and not l.startswith("#")]
+          if lines:
+              print(lines[0])
+          else:
+              req = tomllib.loads(pathlib.Path("pyproject.toml").read_text())["project"]["requires-python"]
+              m = re.search(r"(?:>=|~=|==)\s*(\d+\.\d+)", req) or re.search(r"(\d+\.\d+)", req)
+              print(m.group(1))
+          PY
+          )
+          echo "audit: Python $PYV"
+          uv export --frozen --no-dev --no-default-groups --no-hashes --format requirements-txt --no-emit-project > "$RUNNER_TEMP/req.txt"
+          uvx --python "$PYV" pip-audit==2.10.1 --disable-pip --no-deps -r "$RUNNER_TEMP/req.txt"

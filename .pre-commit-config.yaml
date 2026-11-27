@@ -1,0 +1,36 @@
+# Copy thành .pre-commit-config.yaml ở gốc dự án, rồi:
+#   uv run pre-commit autoupdate && uv run pre-commit install
+# ruff chạy qua `uv run` để dùng ĐÚNG phiên bản trong pyproject/uv.lock (không lệch với CLI).
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-added-large-files
+        args: [--maxkb=1024]
+      - id: detect-private-key
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff check
+        entry: uv run ruff check --fix
+        language: system
+        types: [python]
+      - id: ruff-format
+        name: ruff format
+        entry: uv run ruff format
+        language: system
+        types: [python]
+      - id: lint-imports
+        name: import-linter (luật kiến trúc)
+        entry: uv run lint-imports
+        language: system
+        pass_filenames: false
+        types: [python]
+      - id: check-structure
+        name: check_structure (luật cấu trúc)
+        entry: uv run python scripts/check_structure.py
+        language: system
+        pass_filenames: false
+        types: [python]

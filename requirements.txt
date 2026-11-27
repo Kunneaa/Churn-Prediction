@@ -1,0 +1,11 @@
+# Cho Google Colab / pip (môi trường phát triển dùng uv: `uv sync`, phiên bản khoá trong uv.lock)
+numpy>=1.26
+pandas>=2.0
+scikit-learn>=1.4
+matplotlib>=3.7
+seaborn>=0.12
+pydantic-settings>=2
+pyyaml>=6
+scipy>=1.10
+lightgbm>=4
+# torch (MLP PyTorch) có sẵn trên Colab; máy khác: pip install torch

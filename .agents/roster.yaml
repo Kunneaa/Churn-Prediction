@@ -1,0 +1,2 @@
+# Ghi đè cho riêng project này. Mặc định chung: ~/.agents/agent-os/roster.yaml
+private_paths: [data]

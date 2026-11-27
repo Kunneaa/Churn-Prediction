@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.import_linter_cache/
+dist/
+build/
+
+# Bí mật
+.env
+*.pem
+*.key
+
+# Dữ liệu & sản phẩm
+data/*
+!data/.gitkeep
+artifacts/
+# Đặc trưng .npy quá lớn cho git (ADR-0003): sinh lại bằng notebook / app, đóng vào file zip nộp bài
+features/**/*.npy
+reports/**/*.html
+
+# Đề bài (tài liệu môn học của trường) — chỉ giữ ở máy, không công khai
+docs/*.pdf
+
+# Notebook
+.ipynb_checkpoints/
+
+# Graph (để ngoài repo, phòng khi chạy nhầm trong repo)
+graphify-out/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/settings.json
+
+# Coverage (gate: pytest --cov)
+.coverage
+.coverage.*
+htmlcov/

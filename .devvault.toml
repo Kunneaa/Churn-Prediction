@@ -1,0 +1,36 @@
+# Nguồn sự thật cho skill project-*, agentos devvault/doctor và scripts/check_structure.py.
+standard = "1.0"
+project = "machine-learning"
+profile = "Data Science & AI"
+vault = "~/Documents/DevVault/20-Projects/machine-learning"
+
+# Sàn coverage = mức đo được lúc chuẩn hoá (99,21% → 99, 2026-11-27); chỉ được tăng.
+coverage_floor = 99
+
+# Gate: chạy theo thứ tự, mọi lệnh exit 0 trước mỗi commit (CI chạy đúng danh sách này).
+# Đổi notebook hoặc pipeline → chạy thêm "Run all": uv run jupyter nbconvert --to notebook --execute
+#   notebooks/01-churn-pipeline.ipynb --output /tmp/run.ipynb (17–22 phút, ngoài gate).
+gate = [
+  "uv run ruff check .",
+  "uv run ruff format --check .",
+  "uv run lint-imports",
+  "uv run python scripts/check_structure.py",
+  "uv run pytest -q --cov --cov-fail-under=99",
+]
+
+# Golden (Luật golden 1–2, Lifecycle): metric + sha256 đặc trưng của 9 cấu hình trên mẫu 20k (~45 s). Mốc tests/golden/golden.txt là bản tóm tắt
+# (không dữ liệu thô, ~5 KB). Không ghi file vào repo. ci = false: cần data/raw (dữ liệu riêng) hoặc mạng để tải.
+[golden]
+run = [
+  "uv run python -B tests/golden/golden.py 2>/dev/null | diff tests/golden/golden.txt -",
+]
+ci = false
+
+# Không khai layers: DAG module nằm trong [tool.importlinter] của pyproject.toml.
+# Dữ liệu riêng: .agents/roster.yaml (agentos private add).
+
+# Bố cục phẳng (ADR-0001): package gốc `modules/` ở gốc repo, module nghiệp vụ là `modules/<x>/`,
+# hạ tầng `modules/app/` + `modules/shared/`. scripts/check_structure.py = nguyên bản Toolkit.
+[structure]
+package_dir = "modules"
+infra_dirs = ["app", "shared"]
